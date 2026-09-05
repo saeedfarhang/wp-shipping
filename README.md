@@ -21,7 +21,7 @@ Pinned defaults (override in `.env`):
 
 | Component | Image |
 | --- | --- |
-| WordPress (build base) | `wordpress:6.8-php8.3-fpm` |
+| WordPress (build base) | `wordpress:7.1-php8.3-fpm` |
 | Nginx | `nginx:1.26-alpine` |
 | MariaDB | `mariadb:11.4` |
 | Redis | `redis:7.4-alpine` |

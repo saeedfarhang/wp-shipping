@@ -43,7 +43,7 @@ Two isolated WordPress environments share one VPS and one MariaDB process. They 
 | --- | --- | --- | --- |
 | `nginx-prod` | `nginx:1.26-alpine` | `${PROD_PORT}:80` (default 8080) | frontend |
 | `nginx-stage` | `nginx:1.26-alpine` | `${STAGE_PORT}:80` (default 8081) | frontend |
-| `wordpress-prod` | built from `wordpress:6.8-php8.3-fpm` | none | frontend + backend |
+| `wordpress-prod` | built from `wordpress:7.1-php8.3-fpm` | none | frontend + backend |
 | `wordpress-stage` | same image | none | frontend + backend |
 | `mariadb` | `mariadb:11.4` | none | backend (internal) |
 | `redis-prod` | `redis:7.4-alpine` | none | backend (internal) |

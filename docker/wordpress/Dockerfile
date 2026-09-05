@@ -1,4 +1,4 @@
-ARG WORDPRESS_IMAGE=wordpress:6.8-php8.3-fpm
+ARG WORDPRESS_IMAGE=wordpress:7.1-php8.3-fpm
 FROM ${WORDPRESS_IMAGE}
 
 # Official image entrypoint must start as root so it can fix volume permissions.

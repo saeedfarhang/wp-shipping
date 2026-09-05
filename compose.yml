@@ -72,8 +72,8 @@ services:
       context: ./docker/wordpress
       dockerfile: Dockerfile
       args:
-        WORDPRESS_IMAGE: ${WORDPRESS_IMAGE:-wordpress:6.8-php8.3-fpm}
-    image: ${PROJECT_NAME:-wordpress}-wordpress:${WORDPRESS_TAG:-6.8-php8.3-fpm}
+        WORDPRESS_IMAGE: ${WORDPRESS_IMAGE:-wordpress:7.1-php8.3-fpm}
+    image: ${PROJECT_NAME:-wordpress}-wordpress:${WORDPRESS_TAG:-7.1-php8.3-fpm}
     container_name: ${PROJECT_NAME:-wordpress}-wordpress-prod
     environment:
       TZ: ${TZ:-UTC}
@@ -143,8 +143,8 @@ services:
       context: ./docker/wordpress
       dockerfile: Dockerfile
       args:
-        WORDPRESS_IMAGE: ${WORDPRESS_IMAGE:-wordpress:6.8-php8.3-fpm}
-    image: ${PROJECT_NAME:-wordpress}-wordpress:${WORDPRESS_TAG:-6.8-php8.3-fpm}
+        WORDPRESS_IMAGE: ${WORDPRESS_IMAGE:-wordpress:7.1-php8.3-fpm}
+    image: ${PROJECT_NAME:-wordpress}-wordpress:${WORDPRESS_TAG:-7.1-php8.3-fpm}
     container_name: ${PROJECT_NAME:-wordpress}-wordpress-stage
     environment:
       TZ: ${TZ:-UTC}
