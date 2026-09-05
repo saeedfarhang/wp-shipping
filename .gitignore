@@ -11,9 +11,10 @@ backups/*
 *.tar
 *.tar.gz
 
-# WordPress runtime (must live in Docker volumes)
-wp-content/
-wordpress/
+# WordPress runtime at the repo root only (must live in Docker volumes).
+# Do not use a bare "wordpress/" pattern — that also ignored docker/wordpress.
+/wp-content/
+/wordpress/
 
 # Certificates / keys (not used by default; keep ignored)
 *.pem
