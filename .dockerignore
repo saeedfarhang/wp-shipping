@@ -1,0 +1,12 @@
+.git
+.gitlab-ci.yml
+.env
+.env.*
+backups
+docs
+*.md
+*.sql
+*.sql.gz
+*.tar.gz
+.idea
+.vscode

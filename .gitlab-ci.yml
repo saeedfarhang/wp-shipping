@@ -1,0 +1,145 @@
+# Shell executor on the VPS. Jobs must run on a runner tagged wordpress-infra.
+# Production is never deployed automatically.
+
+default:
+  tags:
+    - wordpress-infra
+
+variables:
+  DEPLOY_DIR: /opt/wordpress-infra
+  FF_ENABLE_JOB_CLEANUP: "false"
+
+stages:
+  - validate
+  - test
+  - deploy-staging
+  - deploy-production
+
+.validate:
+  stage: validate
+  script:
+    - docker compose --env-file .env.example config --quiet
+
+validate:compose:
+  extends: .validate
+  script:
+    - docker compose --env-file .env.example config --quiet
+    - docker compose --env-file .env.example config > /tmp/compose.resolved.yml
+    - test -s /tmp/compose.resolved.yml
+
+validate:scripts:
+  stage: validate
+  script:
+    - |
+      set -euo pipefail
+      shopt -s nullglob
+      files=(scripts/*.sh scripts/lib/*.sh docker/mariadb/init/*.sh docker/wordpress/entrypoint-wrapper.sh)
+      for f in "${files[@]}"; do
+        echo "bash -n $f"
+        bash -n "$f"
+      done
+      if command -v shellcheck >/dev/null 2>&1; then
+        shellcheck -x scripts/*.sh scripts/lib/*.sh docker/mariadb/init/*.sh docker/wordpress/entrypoint-wrapper.sh
+      else
+        echo "shellcheck not installed on runner; bash -n only"
+      fi
+
+validate:nginx:
+  stage: validate
+  script:
+    - |
+      set -euo pipefail
+      image="$(grep -E '^NGINX_IMAGE=' .env.example | cut -d= -f2-)"
+      docker pull "${image}"
+      docker run --rm \
+        -v "$PWD/docker/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro" \
+        "${image}" nginx -t
+      docker run --rm \
+        -v "$PWD/docker/nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro" \
+        "${image}" nginx -t
+
+test:isolation:
+  stage: test
+  needs:
+    - validate:compose
+    - validate:scripts
+    - validate:nginx
+  script:
+    - |
+      set -euo pipefail
+      resolved="$(docker compose --env-file .env.example config)"
+
+      echo "$resolved" | grep -E 'published:.*"?(3306|6379|9000)"?' && {
+        echo "Internal ports must not be published"
+        exit 1
+      } || true
+
+      echo "$resolved" | grep -q 'wordpress_prod' || { echo "missing wordpress_prod"; exit 1; }
+      echo "$resolved" | grep -q 'wordpress_stage' || { echo "missing wordpress_stage"; exit 1; }
+      echo "$resolved" | grep -q 'redis-prod' || { echo "missing redis-prod"; exit 1; }
+      echo "$resolved" | grep -q 'redis-stage' || { echo "missing redis-stage"; exit 1; }
+
+      if echo "$resolved" | grep -A2 'wordpress-prod' | grep -q 'wordpress_stage_user'; then
+        echo "production WordPress must not use the staging DB user"
+        exit 1
+      fi
+      if echo "$resolved" | grep -A2 'wordpress-stage' | grep -q 'wordpress_prod_user'; then
+        echo "staging WordPress must not use the production DB user"
+        exit 1
+      fi
+
+      if grep -RIn -E '^[[:space:]]*(docker[[:space:]]+)?compose[[:space:]]+down[[:space:]]+(-v|--volumes)' scripts; then
+        echo "Deployment scripts must never remove volumes"
+        exit 1
+      fi
+
+      grep -qx '.env' .gitignore || { echo ".env must be gitignored"; exit 1; }
+
+      published="$(echo "$resolved" | grep -E 'published:' || true)"
+      echo "$published"
+      echo "$published" | grep -q '8080' || { echo "production port 8080 missing"; exit 1; }
+      echo "$published" | grep -q '8081' || { echo "staging port 8081 missing"; exit 1; }
+
+.deploy_repo: &deploy_repo
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - |
+      set -euo pipefail
+      if [[ ! -d "${DEPLOY_DIR}/.git" ]]; then
+        echo "ERROR: ${DEPLOY_DIR} is not a git checkout."
+        echo "Complete the initial installation documented in docs/deployment.md first."
+        exit 1
+      fi
+      cd "${DEPLOY_DIR}"
+      git remote get-url origin >/dev/null
+      git fetch origin
+      git checkout -f "${CI_COMMIT_SHA}"
+      test -f .env || { echo "ERROR: ${DEPLOY_DIR}/.env is missing"; exit 1; }
+
+deploy:staging:
+  <<: *deploy_repo
+  stage: deploy-staging
+  environment:
+    name: staging
+    url: http://${VPS_IP}:${STAGE_PORT}
+  script:
+    - cd "${DEPLOY_DIR}"
+    - ./scripts/deploy.sh staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy:production:
+  <<: *deploy_repo
+  stage: deploy-production
+  environment:
+    name: production
+    url: http://${VPS_IP}:${PROD_PORT}
+  script:
+    - cd "${DEPLOY_DIR}"
+    - ./scripts/deploy.sh production
+  needs:
+    - deploy:staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual

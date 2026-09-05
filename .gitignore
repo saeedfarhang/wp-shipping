@@ -1,0 +1,35 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Runtime data
+backups/*
+!backups/.gitkeep
+*.sql
+*.sql.gz
+*.tar
+*.tar.gz
+
+# WordPress runtime (must live in Docker volumes)
+wp-content/
+wordpress/
+
+# Certificates / keys (not used by default; keep ignored)
+*.pem
+*.key
+*.crt
+!docker/**/*.conf
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.log
+
+# Docker
+.docker-cache/

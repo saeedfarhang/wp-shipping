@@ -1,0 +1,18 @@
+# Install on the VPS as root:
+#   sudo cp cron/backups.example /etc/cron.d/wordpress-infra
+#   sudo chmod 644 /etc/cron.d/wordpress-infra
+#
+# Run as gitlab-runner (or another user that can talk to Docker).
+# Do not install cron from Docker Compose.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Daily database backup at 02:00
+0 2 * * * gitlab-runner /opt/wordpress-infra/scripts/backup-db.sh all >> /var/log/wordpress-infra-backup.log 2>&1
+
+# Daily WordPress file backup at 03:00
+0 3 * * * gitlab-runner /opt/wordpress-infra/scripts/backup-files.sh all >> /var/log/wordpress-infra-backup.log 2>&1
+
+# Weekly health verification on Sunday at 04:00
+0 4 * * 0 gitlab-runner /opt/wordpress-infra/scripts/healthcheck.sh all >> /var/log/wordpress-infra-health.log 2>&1
